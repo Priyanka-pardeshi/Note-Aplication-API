@@ -19,6 +19,6 @@ from registerapp.views import Register
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    #path('view/',myview),
-    path('reg/',include('registerapp.urls',namespace='reg'))
+    path('reg/',include('registerapp.urls', namespace='reg')),
+    path('note/',include('noteapp.urls', namespace='note'))
 ]

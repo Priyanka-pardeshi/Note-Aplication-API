@@ -1,23 +1,21 @@
 import logging
-import json
-from django.contrib.auth import authenticate
-from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from django.shortcuts import render, HttpResponse
-from registerapp.models import Registration
-from django.views import View
-from registerapp.serializer import RegisterSerializer, UserSerializer
-from django.http import Http404
-from rest_framework.response import Response
+from django.contrib.auth import authenticate
+from django.shortcuts import HttpResponse
 from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from registerapp.models import Registration
+from registerapp.serializer import RegisterSerializer, UserSerializer
 
 # Create your views here.
 """
 This is user defined register model.
 Which return Http response user registered or not  
 """
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='UserRegistration.log', encoding='utf-8', level=logging.DEBUG)
+
+logging.basicConfig(filename='UserRegistration.log',filemode='w')
 
 
 class Register(APIView):
@@ -29,35 +27,17 @@ class Register(APIView):
         try:
             serializer = RegisterSerializer(data=req.data)
             if serializer.is_valid():
-                logger.info('Data is validated')
+                logging.info('Data is validated')
                 serializer.save()
-                logger.info('Data information is saved')
+                logging.info('Data information is saved')
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
-            logger.error('not valid response')
+            logging.error('not valid response')
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             # raise e
-            logger.error('Exception occurres')
-            return Response()
-
-            # data = json.loads(req.body)
-            # print(data)
-            # user_name = data.get("name")
-            # user_email = data.get("email")
-            # user_password = data.get("password")
-            # user_contact = data.get("contact")
-            # user_dob = data.get("dob")
-            # print(user_name, user_email, user_password, user_contact, user_dob)
-            # all_record_object = Registration.objects.all()
-
-            # register_object = Registration(name=user_name, email=user_email, password=user_password, contact=user_contact, dob=user_dob)
-            # register_object.save()
-            # register_object.id
-            # first_record = Registration.objects.get(id=1)
-            # print(first_record.id)
-
-            # return HttpResponse("record inserted")
+            logging.error('Exception occurres')
+            return Response(" Exception:",str(e))
 
 
 """
@@ -66,23 +46,21 @@ Returns Http response That user is valid or not
 """
 
 
-class UserLogin(APIView):
+class RegisterLogin(APIView):
     def post(self, req):
         try:
             users_mail = req.POST['email']
             password = req.POST['password']
-            # dataa = json.loads(req.body)
-            # user_mail = dataa.get("email")
-            # user_password = dataa.get("password")
-            if Registration.objects.filter(email__exact=users_mail) & Registration.objects.filter(
-                    password__exact=password):
+            if Registration.objects.filter(email__exact=users_mail, password__exact=password):
                 print("Login successfully")
-                return Response()
-            else:
-                print("login failed")
-                return HttpResponse("Login failed")
+                logging.info('Login is successful')
+                return Response("Login successful")
+            print("login failed")
+            logging.info('Login is failed')
+            return Response("Login failed")
         except Exception as e:
-            raise e
+            logging.exception('Exception occurs as:', str(e))
+            return Response("Exception:", e)
 
 
 """
@@ -91,52 +69,42 @@ Return Http response
 """
 
 
-def RegisrationionUserModel(req):
-    try:
-        serializer = UserSerializer(data=req.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Exception as e:
-        raise e
+class UserRegistrationModel(User, APIView):
 
-        # dataa = json.loads(req.body)
-        # user_name = dataa.get("username")
-        # user_firstname = dataa.get("first_name")
-        # user_lastname = dataa.get("last_name")
-        # user_email = dataa.get("email")
-        # user_password = dataa.get("password")
-        # user_object = User(username=user_name, first_name=user_firstname, last_name=user_lastname, email=user_email, password=user_password)
-        # crate_user method have three args as username, email, password
-        # euserObject = User.objects.create_user('sidhika22', 'sidhika1@gmailcom', 'sidhi123')
-        # euserObject.last_name = 'adkar'
-        # user_object.save()
-        # return HttpResponse("record is inserted")
-    # except Exception as e:
-    #    raise e
-
-
-"""
-Function take User name  
-"""
-
-
-class ValiateUser(APIView):
-    def ValidUser(req):
+    def post(self, req):
         try:
-            users_mail = req.POST['email']
-            password = req.POST['password']
-            user = authenticate(req, username=users_mail, password=password)
-            if user is not None:
-                HttpResponse("User is Exists")
-            else:
-                HttpResponse("User is already exists")
+            serializer = UserSerializer(data=req.data)
+            if serializer.is_valid():
+                serializer.save()
+                logging.info('Information is saved')
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            logging.info('something went wrong check input data')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logging.info('Exception occurs:', e)
             raise e
 
-        # data = json.loads(req.body)
-        # users_name = req.POST['username']
-        # password = req.POST['password']
-        # users_name=data.get("username")
-        # password=data.get("password")
+
+"""
+Function take User name an password
+and return response That user is valid or not  
+"""
+
+
+class UserLogin(User,APIView):
+
+    def post(self, req):
+
+        try:
+            users_mail = self.POST['email']
+            password = self.POST['password']
+            user = authenticate(self, username=users_mail, password=password)
+            if user is not None:
+                logging.info('model user exists and logging is successful')
+                Response("Login is successful")
+            else:
+                logging.info('Model user is not valid')
+                HttpResponse("model user is not valid User")
+        except Exception as e:
+            logging.exception('Exception occurs as:', e)
+            raise e

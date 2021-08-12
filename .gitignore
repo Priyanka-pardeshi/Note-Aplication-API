@@ -5,6 +5,7 @@ __pycache__/
 migrations
 UserRegistration/settings.py
 
+
 # C extensions
 *.so
 
