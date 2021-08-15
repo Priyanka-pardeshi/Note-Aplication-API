@@ -7,3 +7,4 @@ class Note(models.Model):
     title=models.CharField(max_length=15)
     description=models.TextField()
     register=models.ForeignKey(Registration, on_delete=models.CASCADE)
+

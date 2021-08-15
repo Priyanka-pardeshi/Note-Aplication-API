@@ -6,12 +6,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from noteapp.serializer import NoteSerializer
+from registerapp.serializer import RegisterSerializer
+from registerapp.models import Registration
+from noteapp.serializer import NoteSerializer
 from django.core import exceptions
+from noteapp.models import Note
 
 logging.basicConfig(filename='Lognote.log', filemode='w')
 
 
-class AddNote(APIView):
+class Notes(APIView):
 
     def post(self, req):
         try:
@@ -29,3 +33,43 @@ class AddNote(APIView):
         except Exception as e:
             logging.exception('Exception occurs as:', str(e))
             return Response('Exception', str(e))
+
+    def get(self, req, reg_no=None, note_id=None):
+        if reg_no is not None:
+            if note_id is not None:
+                # getting a single note associated with FK
+                get_id = Registration.objects.get(id=reg_no)
+                getting_a_note = Note.objects.get(id=note_id)
+                serializer = NoteSerializer(getting_a_note)
+                #return Response('return note with associated with fk')
+                return Response(serializer.data)
+            else:
+                # getting all notes associated with FK
+                get_id = Registration.objects.get(reg_no)
+                getting_all_note = Note.objects.all()
+                serializer = NoteSerializer(getting_all_note, data=req.data)
+                return Response(serializer.data)
+                #return Response('return all note with specific fk')
+        else:
+            # return all Register user
+            specific_note_id = Registration.objects.all()
+            serializer = NoteSerializer(specific_note_id, many=True)
+            # return Response('Return all register user')
+            return Response(serializer.data)
+
+
+    def put(self, req, reg_no,note_id):
+        get_id = Registration.objects.get(id=reg_no)
+        getting_a_note = Note.objects.get(id=note_id)
+        serializer = NoteSerializer(getting_a_note, data=req.data)
+        if serializer.is_valid():
+            logging.info('Data is valid data')
+            serializer.save()
+            return Response('Data is updated/Edited')
+        return Response('Not updated')
+
+    def delete(self, req,reg_no,note_id):
+        get_id = Registration.objects.get(id=reg_no)
+        getting_a_note = Note.objects.get(id=note_id)
+        getting_a_note.delete()
+        return Response('Deleted recored')
