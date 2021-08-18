@@ -1,17 +1,12 @@
 from django.core.exceptions import FieldDoesNotExist
-from django.shortcuts import render
+from registerapp.models import UserRegistration
 import logging
 # Create your views here.
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from noteapp.serializer import NoteSerializer
-from registerapp.serializer import RegisterSerializer
-from registerapp.models import Registration
-from noteapp.serializer import NoteSerializer
-from django.core import exceptions
 from noteapp.models import Note
-
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
 """
@@ -47,7 +42,7 @@ class Notes(APIView):
             if note_id is not None:
 
                 # getting a single note associated with FK
-                get_id = Registration.objects.get(id=reg_no)
+                get_id = UserRegistration.objects.get(id=reg_no)
                 getting_a_note = Note.objects.get(id=note_id)
                 serializer = NoteSerializer(getting_a_note)
                 # return Response('return note with associated with fk')
@@ -55,7 +50,7 @@ class Notes(APIView):
                 return Response(serializer.data)
             else:
                 # getting all notes associated with FK
-                get_id = Registration.objects.get(reg_no)
+                get_id = UserRegistration.objects.get(reg_no)
                 getting_all_note = Note.objects.all()
                 serializer = NoteSerializer(getting_all_note, data=req.data)
                 logging.info("As User doesn't provide Note Id Returning all Notes Information")
@@ -63,13 +58,13 @@ class Notes(APIView):
                 # return Response('return all note with specific fk')
         else:
             # return all Register user
-            specific_note_id = Registration.objects.all()
+            specific_note_id =UserRegistration.objects.all()
             serializer = NoteSerializer(specific_note_id, many=True)
             # return Response('Return all register user')
             return Response(serializer.data)
 
     def put(self, req, reg_no, note_id):
-        get_id = Registration.objects.get(id=reg_no)
+        get_id = UserRegistration.objects.get(id=reg_no)
         getting_a_note = Note.objects.get(id=note_id)
         serializer = NoteSerializer(getting_a_note, data=req.data)
         if serializer.is_valid():
@@ -79,7 +74,7 @@ class Notes(APIView):
         return Response('Not updated')
 
     def delete(self, req, reg_no, note_id):
-        get_id = Registration.objects.get(id=reg_no)
+        get_id = UserRegistration.objects.get(id=reg_no)
         getting_a_note = Note.objects.get(id=note_id)
         getting_a_note.delete()
         logging.info('Record has been successfully deleted')
