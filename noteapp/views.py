@@ -1,5 +1,7 @@
+import jwt
 from django.core.exceptions import FieldDoesNotExist
-from registerapp.models import UserRegistration
+from rest_framework.exceptions import ParseError, NotFound
+
 import logging
 # Create your views here.
 from rest_framework.response import Response
@@ -7,6 +9,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from noteapp.serializer import NoteSerializer
 from noteapp.models import Note
+
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
 """
@@ -20,10 +23,12 @@ Delete- Used to Delete record.
 
 class Notes(APIView):
 
-    def post(self, req):
+    def post(self, request):
         try:
-            serializer = NoteSerializer(data=req.data)
+            serializer = NoteSerializer(data=request.data)
             if serializer.is_valid():
+                token=request.headers.get['token']
+                serializer.token = jwt.decode(token, "secret", algorithm=["HS256"])
                 logging.info('Data is valid data')
                 serializer.save()
                 logging.info('Data is saved and status has been generated')
@@ -33,49 +38,47 @@ class Notes(APIView):
         except FieldDoesNotExist:
             logging.exception('Field does not exists')
             return Response('Field Does not exists')
+
+        except ParseError as exception:
+            logging.exception({'Exception': 'Request contains malformed data'})
+            return Response('Exception:', exception)
         except Exception as e:
             logging.exception('Exception occurs as:', str(e))
             return Response('Exception', str(e))
 
-    def get(self, req, reg_no=None, note_id=None):
-        if reg_no is not None:
-            if note_id is not None:
-
-                # getting a single note associated with FK
-                get_id = UserRegistration.objects.get(id=reg_no)
-                getting_a_note = Note.objects.get(id=note_id)
-                serializer = NoteSerializer(getting_a_note)
-                # return Response('return note with associated with fk')
-                logging.info('Getting specific Note from Register User')
-                return Response(serializer.data)
-            else:
-                # getting all notes associated with FK
-                get_id = UserRegistration.objects.get(reg_no)
-                getting_all_note = Note.objects.all()
-                serializer = NoteSerializer(getting_all_note, data=req.data)
-                logging.info("As User doesn't provide Note Id Returning all Notes Information")
-                return Response(serializer.data)
-                # return Response('return all note with specific fk')
-        else:
-            # return all Register user
-            specific_note_id =UserRegistration.objects.all()
-            serializer = NoteSerializer(specific_note_id, many=True)
-            # return Response('Return all register user')
+    def get(self, request,token):
+        try:
+            decoded_token = jwt.decode(token, "secret", algorithm=["HS256"])
+            note = Note.objects.all(fk=decoded_token)
+            serializer = NoteSerializer(note)
+            # return Response('return note with associated with fk')
+            logging.info('Getting specific Note from Register User')
             return Response(serializer.data)
+        except NotFound as exception:
+            logging.exception('Record Not found')
+            return Response({'Resource Does not exists': exception})
 
-    def put(self, req, reg_no, note_id):
-        get_id = UserRegistration.objects.get(id=reg_no)
-        getting_a_note = Note.objects.get(id=note_id)
-        serializer = NoteSerializer(getting_a_note, data=req.data)
-        if serializer.is_valid():
-            logging.info('Data is valid data')
-            serializer.save()
-            return Response('Data is updated/Edited')
-        return Response('Not updated')
+    def put(self, request, token):
+        try:
+            decoded_token=jwt.decode(token, "secret", algorithms="HS256")
+            note = Note.objects.get(fk=decoded_token)
+            serializer = NoteSerializer(note, data=request.data)
+            if serializer.is_valid():
+                logging.info('Data is valid data')
+                serializer.save()
+                return Response('Data is updated/Edited')
+            return Response('Not updated')
+        except FieldDoesNotExist as exception:
+            logging.exception('Requested field Does not exists')
+            return Response({'Exception': exception})
 
-    def delete(self, req, reg_no, note_id):
-        get_id = UserRegistration.objects.get(id=reg_no)
-        getting_a_note = Note.objects.get(id=note_id)
-        getting_a_note.delete()
-        logging.info('Record has been successfully deleted')
-        return Response('Deleted record')
+    def delete(self, reqest, token):
+        try:
+            decoded_token=jwt.decode(token,"secret",algorithms="HS265")
+            note = Note.objects.get(fk=decoded_token)
+            note.delete()
+            logging.info('Record has been successfully deleted')
+            return Response('Deleted record')
+        except Exception as exception:
+            logging.exception('Exception occurs as:', exception)
+            return Response({'Excption': exception })

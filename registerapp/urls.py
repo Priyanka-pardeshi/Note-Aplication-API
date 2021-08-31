@@ -1,10 +1,10 @@
 from django.urls import path
-from . import views
-from registerapp.views import RegisterLogin, Register, UserRegistrationModel,UserLogin
+
+from registerapp.views import Registration, UserLogin, VerifyUser
+
 app_name = 'reg'
 urlpatterns = [
-    path('reg/', Register.as_view()),
-    path('login/', RegisterLogin.as_view()),
-    path('userReg/', UserRegistrationModel.as_view()),
-    path('userLogin/', views.UserLogin.as_view())
+    path('userReg/', Registration.as_view()),
+    path('login/', UserLogin.as_view()),
+    path('<str:verify>/', VerifyUser.as_view())
 ]
