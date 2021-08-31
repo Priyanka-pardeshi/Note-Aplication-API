@@ -1,13 +1,13 @@
 import logging
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from django.shortcuts import HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import jwt
+from django.core.mail import send_mail
 
-from registerapp.models import Registration
-from registerapp.serializer import RegisterSerializer, UserSerializer
+from registerapp.models import UserRegistration
+from registerapp.serializer import UserRegistrationSerializer
 
 # Create your views here.
 """
@@ -15,53 +15,7 @@ This is user defined register model.
 Which return Http response user registered or not  
 """
 
-logging.basicConfig(filename='UserRegistration.log',filemode='w')
-
-
-class Register(APIView):
-
-    def post(self, req):
-        """doc str
-
-        """
-        try:
-            serializer = RegisterSerializer(data=req.data)
-            if serializer.is_valid():
-                logging.info('Data is validated')
-                serializer.save()
-                logging.info('Data information is saved')
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            logging.error('not valid response')
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            # raise e
-            logging.error('Exception occurres')
-            return Response(" Exception:",str(e))
-
-
-"""
-UserLogin class take Username and password  and,
-Returns Http response That user is valid or not 
-"""
-
-
-class RegisterLogin(APIView):
-    def post(self, req):
-        try:
-            users_mail = req.POST['email']
-            password = req.POST['password']
-            if Registration.objects.filter(email__exact=users_mail, password__exact=password):
-                print("Login successfully")
-                logging.info('Login is successful')
-                return Response("Login successful")
-            print("login failed")
-            logging.info('Login is failed')
-            return Response("Login failed")
-        except Exception as e:
-            logging.exception('Exception occurs as:', str(e))
-            return Response("Exception:", e)
-
+logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
 """
 Function save registration data into user model
@@ -69,20 +23,33 @@ Return Http response
 """
 
 
-class UserRegistrationModel(User, APIView):
+class Registration(APIView):
 
-    def post(self, req):
+    def post(self, request):
         try:
-            serializer = UserSerializer(data=req.data)
+            serializer = UserRegistrationSerializer(data=request.data)
             if serializer.is_valid():
-                serializer.save()
+                user = UserRegistration.objects.create_user(username=request.data['username'],
+                                                            password=request.data['password'],
+                                                            email=request.data['email'],
+                                                            first_name=request.data['first_name'],
+                                                            last_name=request.data['last_name'])
+                user.location = request.data.get('location')
+
+                user.save()
                 logging.info('Information is saved')
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
+                encoded_token = jwt.encode({"username": request.data.get('username')}, "secret", algorithm="HS256")
+                url = "http://127.0.0.1:8000/reg/verify/" + encoded_token
+                send_mail('Verification', url, 'priyankapardeshi224@gmail.com',
+                      [ request.data.get('email')])
+
+                return Response({"Message":"Info is saved"}, status=status.HTTP_201_CREATED)
             logging.info('something went wrong check input data')
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logging.info('Exception occurs:', e)
-            raise e
+            print(str(e))
+            return Response({'Exception': str(e)})
 
 
 """
@@ -91,20 +58,43 @@ and return response That user is valid or not
 """
 
 
-class UserLogin(User,APIView):
+class UserLogin(APIView):
 
-    def post(self, req):
+    def post(self, request):
+        # try:
+        username = request.data.get('username')
+        password = request.data.get('password')
+        is_verified = request.data.get('is_verify')
+        # setPassword
+        encoded_token = jwt.encode({"username": request.data.get('username')}, "secret", algorithm="HS256")
+        user = authenticate(request, username=username, password=password)
+        #is verified and not none.
 
-        try:
-            users_mail = self.POST['email']
-            password = self.POST['password']
-            user = authenticate(self, username=users_mail, password=password)
-            if user is not None:
+        print(username, password)
+        print(user)
+        if user is not None:
+            if is_verified is True:
                 logging.info('model user exists and logging is successful')
-                Response("Login is successful")
-            else:
-                logging.info('Model user is not valid')
-                HttpResponse("model user is not valid User")
-        except Exception as e:
-            logging.exception('Exception occurs as:', e)
-            raise e
+                return Response({"Message": "Login is successful", "token": encoded_token})
+            logging.info('Model user is not valid')
+            return Response({"Message": "model user is not valid User"})
+    # except Exception as e:
+    #    logging.exception('Exception occurs as:', e)
+    #    return Response({'Exception': str(e)})
+
+
+class VerifyUser(APIView):
+    def get(self, request, token):
+        try:
+            decoded_token = jwt.decode(token, "secret", algorithm=["HS256"])
+            user = UserRegistration.objects.get(id=decoded_token)
+            serializer = UserRegistrationSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.is_verify = True
+
+                serializer.save()
+                return Response({"Message": "Successfully validated user "})
+            return Response({"Message": "Data is not validated"})
+        except Exception as exception:
+            logging.exception("Exception occurs")
+            return Response({"Exception": str(exception)})
