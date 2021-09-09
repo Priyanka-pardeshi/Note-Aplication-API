@@ -6,5 +6,5 @@ app_name = 'reg'
 urlpatterns = [
     path('userReg/', Registration.as_view()),
     path('login/', UserLogin.as_view()),
-    path('<str:verify>/', VerifyUser.as_view())
+    path('<str:token>/', VerifyUser.as_view())
 ]

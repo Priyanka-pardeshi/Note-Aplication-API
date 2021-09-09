@@ -1,4 +1,3 @@
-import jwt
 from django.core.exceptions import FieldDoesNotExist
 from rest_framework.exceptions import ParseError, NotFound
 
@@ -9,6 +8,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from noteapp.serializer import NoteSerializer
 from noteapp.models import Note
+from noteapp.util import decode_token, validate_token
 
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
@@ -22,63 +22,81 @@ Delete- Used to Delete record.
 
 
 class Notes(APIView):
-
+    @validate_token
     def post(self, request):
         try:
             serializer = NoteSerializer(data=request.data)
             if serializer.is_valid():
-                token=request.headers.get['token']
-                serializer.token = jwt.decode(token, "secret", algorithm=["HS256"])
                 logging.info('Data is valid data')
                 serializer.save()
                 logging.info('Data is saved and status has been generated')
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             logging.error('Data is not valid data, bad status generated')
-            return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': "note saved"}, status=status.HTTP_400_BAD_REQUEST)
+
         except FieldDoesNotExist:
             logging.exception('Field does not exists')
-            return Response('Field Does not exists')
+            return Response({'Message': 'Field Does not exists'})
 
         except ParseError as exception:
             logging.exception({'Exception': 'Request contains malformed data'})
-            return Response('Exception:', exception)
+            return Response({'Exception:', exception})
         except Exception as e:
             logging.exception('Exception occurs as:', str(e))
             return Response('Exception', str(e))
 
-    def get(self, request,token):
+    @validate_token
+    def get(self, request):
         try:
-            decoded_token = jwt.decode(token, "secret", algorithm=["HS256"])
-            note = Note.objects.all(fk=decoded_token)
-            serializer = NoteSerializer(note)
+            user_id = request.data['user']
+            print(user_id)
+            note = Note.objects.filter(user_id=user_id)
+            serializer = NoteSerializer(note, many=True)
             # return Response('return note with associated with fk')
             logging.info('Getting specific Note from Register User')
-            return Response(serializer.data)
+            #  add status
+            return Response({'Note List': serializer.data}, status=status.HTTP_200_OK)
         except NotFound as exception:
             logging.exception('Record Not found')
             return Response({'Resource Does not exists': exception})
+        except Exception as exception:
+            return Response({'Exception': exception})
 
-    def put(self, request, token):
+    @validate_token
+    def put(self, request):
         try:
-            decoded_token=jwt.decode(token, "secret", algorithms="HS256")
-            note = Note.objects.get(fk=decoded_token)
-            serializer = NoteSerializer(note, data=request.data)
+            identity = request.data.get('id')
+            print("Note id", identity)
+            obj = Note.objects.get(pk=identity)
+            print(obj)
+            serializer = NoteSerializer(obj, data=request.data)
+            #            serializer.is_valid(raise_exception=True)
             if serializer.is_valid():
                 logging.info('Data is valid data')
                 serializer.save()
-                return Response('Data is updated/Edited')
-            return Response('Not updated')
+                return Response({'Message': 'Data is updated/Edited'}, status=status.HTTP_200_OK)
+            return Response({'Message': 'Not updated'}, status=status.HTTP_304_NOT_MODIFIED)
         except FieldDoesNotExist as exception:
             logging.exception('Requested field Does not exists')
             return Response({'Exception': exception})
+        except Exception as exception:
+            return Response({'Exception occurs': exception})
 
-    def delete(self, reqest, token):
+    @validate_token
+    def delete(self, request):
         try:
-            decoded_token=jwt.decode(token,"secret",algorithms="HS265")
-            note = Note.objects.get(fk=decoded_token)
-            note.delete()
+            user_id = request.data['user']
+            note = Note.objects.all().filter(user_id=user_id)
+            serializer = NoteSerializer(note, many=True)
+            identity = request.data.get('id')
+            print(identity)
+            obj = Note.objects.filter(id=identity)
+            print("object:", obj)
+            print(serializer)
+            print("this is Note:", note)
+            obj.delete()
             logging.info('Record has been successfully deleted')
-            return Response('Deleted record')
+            return Response({'Message': 'Deleted record'}, status=status.HTTP_200_OK)
         except Exception as exception:
             logging.exception('Exception occurs as:', exception)
-            return Response({'Excption': exception })
+            return Response({'Exception': exception})
