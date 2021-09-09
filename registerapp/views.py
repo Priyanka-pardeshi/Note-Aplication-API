@@ -28,6 +28,7 @@ class Registration(APIView):
     def post(self, request):
         try:
             serializer = UserRegistrationSerializer(data=request.data)
+
             if serializer.is_valid():
                 user = UserRegistration.objects.create_user(username=request.data['username'],
                                                             password=request.data['password'],
@@ -35,11 +36,14 @@ class Registration(APIView):
                                                             first_name=request.data['first_name'],
                                                             last_name=request.data['last_name'])
                 user.location = request.data.get('location')
-
                 user.save()
                 logging.info('Information is saved')
-                encoded_token = jwt.encode({"username": request.data.get('username')}, "secret", algorithm="HS256")
-                url = "http://127.0.0.1:8000/reg/verify/" + encoded_token
+
+                print(user.id)
+                encoded_token_id = jwt.encode({"id":user.id}, "secret", algorithm="HS256")
+
+                print(encoded_token_id)
+                url = "http://127.0.0.1:8000/reg/" + encoded_token_id
                 send_mail('Verification', url, 'priyankapardeshi224@gmail.com',
                       [ request.data.get('email')])
 
@@ -64,12 +68,11 @@ class UserLogin(APIView):
         # try:
         username = request.data.get('username')
         password = request.data.get('password')
-        is_verified = request.data.get('is_verify')
-        # setPassword
-        encoded_token = jwt.encode({"username": request.data.get('username')}, "secret", algorithm="HS256")
-        user = authenticate(request, username=username, password=password)
-        #is verified and not none.
 
+        # setPassword
+        user = authenticate(request, username=username, password=password)
+        is_verified=user.is_verify
+        encoded_token = jwt.encode({"id": user.id}, "secret", algorithm="HS256")
         print(username, password)
         print(user)
         if user is not None:
@@ -86,15 +89,23 @@ class UserLogin(APIView):
 class VerifyUser(APIView):
     def get(self, request, token):
         try:
-            decoded_token = jwt.decode(token, "secret", algorithm=["HS256"])
-            user = UserRegistration.objects.get(id=decoded_token)
+            print(token)
+            decoded_token = jwt.decode(token, "secret", algorithms=["HS256"])
+            print(decoded_token)
+            user_id = decoded_token.get("id")
+            print(user_id)
+            # retrieve value from dict
+            user = UserRegistration.objects.get(id=user_id)
+            user.is_verify=True
             serializer = UserRegistrationSerializer(user, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.is_verify = True
 
+            if serializer.is_valid():
                 serializer.save()
                 return Response({"Message": "Successfully validated user "})
             return Response({"Message": "Data is not validated"})
         except Exception as exception:
             logging.exception("Exception occurs")
             return Response({"Exception": str(exception)})
+
+# take user id, enter email id, get mail contain token , rest api will called
+# forgot , rest api
