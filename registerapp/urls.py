@@ -4,7 +4,8 @@ from registerapp.views import Registration, UserLogin, VerifyUser
 
 app_name = 'reg'
 urlpatterns = [
-    path('userReg/', Registration.as_view()),
-    path('login/', UserLogin.as_view()),
-    path('<str:token>/', VerifyUser.as_view())
+    # add name
+    path('userReg/', Registration.as_view(), name='register'),
+    path('login/', UserLogin.as_view(), name='Login'),
+    path('<str:token>/', VerifyUser.as_view(), name='verification')
 ]

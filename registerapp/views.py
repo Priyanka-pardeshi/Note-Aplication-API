@@ -65,25 +65,25 @@ and return response That user is valid or not
 class UserLogin(APIView):
 
     def post(self, request):
-        # try:
-        username = request.data.get('username')
-        password = request.data.get('password')
+        try:
+            username = request.data.get('username')
+            password = request.data.get('password')
 
         # setPassword
-        user = authenticate(request, username=username, password=password)
-        is_verified=user.is_verify
-        encoded_token = jwt.encode({"id": user.id}, "secret", algorithm="HS256")
-        print(username, password)
-        print(user)
-        if user is not None:
-            if is_verified is True:
-                logging.info('model user exists and logging is successful')
-                return Response({"Message": "Login is successful", "token": encoded_token})
-            logging.info('Model user is not valid')
-            return Response({"Message": "model user is not valid User"})
-    # except Exception as e:
-    #    logging.exception('Exception occurs as:', e)
-    #    return Response({'Exception': str(e)})
+            user = authenticate(request, username=username, password=password)
+            is_verified=user.is_verify
+            encoded_token = jwt.encode({"id": user.id}, "secret", algorithm="HS256")
+            print(username, password)
+            print(user)
+            if user is not None:
+                if is_verified is True:
+                    logging.info('model user exists and logging is successful')
+                    return Response({"Message": "Login is successful", "token": encoded_token})
+                logging.info('Model user is not valid')
+                return Response({"Message": "model user is not valid User"})
+        except Exception as e:
+            logging.exception('Exception occurs as:', e)
+            return Response({'Exception': str(e)})
 
 
 class VerifyUser(APIView):
@@ -96,7 +96,7 @@ class VerifyUser(APIView):
             print(user_id)
             # retrieve value from dict
             user = UserRegistration.objects.get(id=user_id)
-            user.is_verify=True
+            user.is_verify = True
             serializer = UserRegistrationSerializer(user, data=request.data, partial=True)
 
             if serializer.is_valid():
@@ -107,5 +107,3 @@ class VerifyUser(APIView):
             logging.exception("Exception occurs")
             return Response({"Exception": str(exception)})
 
-# take user id, enter email id, get mail contain token , rest api will called
-# forgot , rest api

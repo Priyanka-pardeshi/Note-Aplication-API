@@ -1,4 +1,5 @@
 import jwt
+from django.http import QueryDict
 
 
 def decode_token(token):
@@ -12,11 +13,14 @@ def validate_token(func):
         print(token)
         decoded_token = decode_token(token)
         user_id = decoded_token.get('id')
-        print(user_id)
+
         # update then serialize
+        if isinstance(request.data, QueryDict):
+            request.data._mutable = True
+            request.data.update({'user':user_id})
         request.data.update({'user': user_id})
 
         return func(self, request)
     return inner
 
-# write decoraters
+# write decorat

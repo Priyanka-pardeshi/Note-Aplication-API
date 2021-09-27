@@ -6,9 +6,9 @@ import logging
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from noteapp.serializer import NoteSerializer
-from noteapp.models import Note
-from noteapp.util import decode_token, validate_token
+from noteapp.serializer import NoteSerializer, LabelSerializer
+from noteapp.models import Note, Label
+from noteapp.util import validate_token
 
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
@@ -28,11 +28,10 @@ class Notes(APIView):
             serializer = NoteSerializer(data=request.data)
             if serializer.is_valid():
                 logging.info('Data is valid data')
-                serializer.save()
+                note = serializer.save()
+                print("Note id::", note.id)
                 logging.info('Data is saved and status has been generated')
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            logging.error('Data is not valid data, bad status generated')
-            return Response({'message': "note saved"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
 
         except FieldDoesNotExist:
             logging.exception('Field does not exists')
@@ -40,7 +39,7 @@ class Notes(APIView):
 
         except ParseError as exception:
             logging.exception({'Exception': 'Request contains malformed data'})
-            return Response({'Exception:', exception})
+            return Response({'Exception:', str(exception)})
         except Exception as e:
             logging.exception('Exception occurs as:', str(e))
             return Response('Exception', str(e))
@@ -52,7 +51,6 @@ class Notes(APIView):
             print(user_id)
             note = Note.objects.filter(user_id=user_id)
             serializer = NoteSerializer(note, many=True)
-            # return Response('return note with associated with fk')
             logging.info('Getting specific Note from Register User')
             #  add status
             return Response({'Note List': serializer.data}, status=status.HTTP_200_OK)
@@ -66,11 +64,10 @@ class Notes(APIView):
     def put(self, request):
         try:
             identity = request.data.get('id')
-            print("Note id", identity)
+            print("Note id::", identity)
             obj = Note.objects.get(pk=identity)
             print(obj)
             serializer = NoteSerializer(obj, data=request.data)
-            #            serializer.is_valid(raise_exception=True)
             if serializer.is_valid():
                 logging.info('Data is valid data')
                 serializer.save()
