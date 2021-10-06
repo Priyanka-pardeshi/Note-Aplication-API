@@ -1,11 +1,12 @@
 import logging
+import jwt
 from django.contrib.auth import authenticate
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-import jwt
 from django.core.mail import send_mail
-
 from registerapp.models import UserRegistration
 from registerapp.serializer import UserRegistrationSerializer
 
@@ -24,7 +25,12 @@ Return Http response
 
 
 class Registration(APIView):
-
+    @swagger_auto_schema(request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'username': openapi.Schema(type=openapi.TYPE_STRING, description="username"),
+                             'email': openapi.Schema(type=openapi.TYPE_STRING, description="description"),
+                             'password': openapi.Schema(type=openapi.TYPE_STRING, description='password'),
+                             'first_name': openapi.Schema(type=openapi.TYPE_STRING, description='first_name'),
+                             'last_name': openapi.Schema(type=openapi.TYPE_STRING, description='last_name')}))
     def post(self, request):
         try:
             serializer = UserRegistrationSerializer(data=request.data)
@@ -40,7 +46,7 @@ class Registration(APIView):
                 logging.info('Information is saved')
 
                 print(user.id)
-                encoded_token_id = jwt.encode({"id":user.id}, "secret", algorithm="HS256")
+                encoded_token_id = jwt.encode({"id": user.id}, "secret", algorithm="HS256")
 
                 print(encoded_token_id)
                 url = "http://127.0.0.1:8000/reg/" + encoded_token_id
@@ -64,6 +70,9 @@ and return response That user is valid or not
 
 class UserLogin(APIView):
 
+    @swagger_auto_schema(request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'username': openapi.Schema(type=openapi.TYPE_STRING, description='username'),
+                             'password': openapi.Schema(type=openapi.TYPE_STRING, description='password')}))
     def post(self, request):
         try:
             username = request.data.get('username')
@@ -71,7 +80,7 @@ class UserLogin(APIView):
 
         # setPassword
             user = authenticate(request, username=username, password=password)
-            is_verified=user.is_verify
+            is_verified = user.is_verify
             encoded_token = jwt.encode({"id": user.id}, "secret", algorithm="HS256")
             print(username, password)
             print(user)

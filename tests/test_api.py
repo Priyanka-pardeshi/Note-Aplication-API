@@ -130,3 +130,4 @@ class TestNoteDelete:
         note_response = client.delete(note_url, note_data, **header,content_type='application/json')
         print(note_response.content)
         assert note_response.status_code == 200
+

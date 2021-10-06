@@ -11,3 +11,4 @@ class UserRegistration(AbstractUser):
     REQUIRED_FIELDS = ['email', 'password', 'first_name', 'last_name']
     is_verify = models.BooleanField(default=False)
 
+
