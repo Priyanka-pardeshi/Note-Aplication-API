@@ -13,7 +13,6 @@ def validate_token(func):
         print(token)
         decoded_token = decode_token(token)
         user_id = decoded_token.get('id')
-
         # update then serialize
         if isinstance(request.data, QueryDict):
             request.data._mutable = True
@@ -23,4 +22,3 @@ def validate_token(func):
         return func(self, request)
     return inner
 
-# write decorat

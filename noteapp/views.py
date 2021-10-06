@@ -1,4 +1,5 @@
 from django.core.exceptions import FieldDoesNotExist
+from registerapp.models import UserRegistration
 from rest_framework.exceptions import ParseError, NotFound
 
 import logging
@@ -9,6 +10,9 @@ from rest_framework.views import APIView
 from noteapp.serializer import NoteSerializer, LabelSerializer
 from noteapp.models import Note, Label
 from noteapp.util import validate_token
+
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
@@ -22,6 +26,11 @@ Delete- Used to Delete record.
 
 
 class Notes(APIView):
+
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'title': openapi.Schema(type=openapi.TYPE_STRING, description="title"),
+                             'description': openapi.Schema(type=openapi.TYPE_STRING, description="description")}))
     @validate_token
     def post(self, request):
         try:
@@ -44,9 +53,13 @@ class Notes(APIView):
             logging.exception('Exception occurs as:', str(e))
             return Response('Exception', str(e))
 
+    #@swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+    #                     request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+    #                         'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="id")}))
     @validate_token
     def get(self, request):
         try:
+            # get collaborator and label
             user_id = request.data['user']
             print(user_id)
             note = Note.objects.filter(user_id=user_id)
@@ -60,6 +73,11 @@ class Notes(APIView):
         except Exception as exception:
             return Response({'Exception': exception})
 
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'title': openapi.Schema(type=openapi.TYPE_STRING, description="title"),
+                             'description': openapi.Schema(type=openapi.TYPE_STRING, description="description"),
+                             'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='id')}))
     @validate_token
     def put(self, request):
         try:
@@ -79,6 +97,9 @@ class Notes(APIView):
         except Exception as exception:
             return Response({'Exception occurs': exception})
 
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="id")}))
     @validate_token
     def delete(self, request):
         try:
@@ -97,3 +118,96 @@ class Notes(APIView):
         except Exception as exception:
             logging.exception('Exception occurs as:', exception)
             return Response({'Exception': exception})
+
+
+class NoteLabel(APIView):
+
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'label_name': openapi.Schema(type=openapi.TYPE_STRING, description="label_name"),
+                             'color': openapi.Schema(type=openapi.TYPE_STRING, description="color")}))
+    @validate_token
+    def post(self, request):
+        try:
+
+            serializer = LabelSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
+            return Response({'Message': 'Serializer is not valid'})
+        except Exception as e:
+            return Response({'Exception ': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    #@swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+    #                     request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+    #                         'id': openapi.Schema(type=openapi.TYPE_STRING, description='id')
+    #                     }))
+    @validate_token
+    def get(self, request):
+        try:
+            label_id = request.data.get('id')
+            print(label_id)
+            label = Label.objects.get(id=label_id)
+            print(label)
+            serializer = LabelSerializer(label)
+            return Response({"Data": serializer.data}, status=status.HTTP_200_OK)
+        except Exception as exception:
+            return Response({'Exception:': str(exception)})
+
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'id': openapi.Schema(type=openapi.TYPE_STRING, description='id')
+                         }))
+    @validate_token
+    def delete(self, request):
+        try:
+            label_id = request.data.get('id')
+            label = Label.objects.get(pk=label_id)
+            label.delete()
+            return Response({'Message': 'Data is successfully deleted'}, status=status.HTTP_200_OK)
+        except Exception as exception:
+            return Response({'Exception:': str(exception)})
+
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+                         request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                             'label_name': openapi.Schema(type=openapi.TYPE_STRING, description="label_name"),
+                             'color': openapi.Schema(type=openapi.TYPE_STRING, description="color"),
+                             'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='id')}))
+    @validate_token
+    def put(self, request):
+        try:
+            label_id = request.data.get('id')
+            print(label_id)
+            obj = Label.objects.get(pk=label_id)
+            serializer = LabelSerializer(obj, data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({}, status=status.HTTP_200_OK)
+            return Response({'message:': 'Serializer is not valid'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exception:
+            return Response({'exception:': str(exception)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AddCollaborator(APIView):
+
+    @validate_token
+    def post(self, request):
+        try:
+            # getting the note id, user_id
+            note_id = request.data.get('note_id')
+            user_id = request.data.get('userregistration_id')
+            print("user id::", user_id, "Note Id::", note_id)
+
+            # getting object associated with it
+            note = Note.objects.get(pk=note_id)
+            collaborator_obj = UserRegistration.objects.get(pk=user_id)
+            print("note object::", note, "collaborator object::", collaborator_obj)
+
+            # adding collaboratoer user to notes
+            note.collaborator.add(collaborator_obj)
+            objs = note.collaborator.all()
+
+            print(objs)
+            return Response({"Message": "Successfully added an collaborator"}, status=status.HTTP_200_OK)
+        except Exception as exception:
+            return Response({"exception": str(exception)})
