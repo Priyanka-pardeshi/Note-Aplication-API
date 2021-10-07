@@ -27,20 +27,21 @@ Delete- Used to Delete record.
 
 class Notes(APIView):
 
-    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, "token", type=openapi.TYPE_STRING)],
                          request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
                              'title': openapi.Schema(type=openapi.TYPE_STRING, description="title"),
                              'description': openapi.Schema(type=openapi.TYPE_STRING, description="description")}))
     @validate_token
     def post(self, request):
+        
         try:
             serializer = NoteSerializer(data=request.data)
-            if serializer.is_valid():
-                logging.info('Data is valid data')
-                note = serializer.save()
-                print("Note id::", note.id)
-                logging.info('Data is saved and status has been generated')
-                return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
+            serializer.is_valid(raise_exception=True)
+            logging.info('Data is valid data')
+            note = serializer.save()
+            print("Note id::", note.id)
+            logging.info('Data is saved and status has been generated')
+            return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
 
         except FieldDoesNotExist:
             logging.exception('Field does not exists')
@@ -51,11 +52,9 @@ class Notes(APIView):
             return Response({'Exception:', str(exception)})
         except Exception as e:
             logging.exception('Exception occurs as:', str(e))
-            return Response('Exception', str(e))
+            return Response({'Exception':str(e)})
 
-    #@swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
-    #                     request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
-    #                         'id': openapi.Schema(type=openapi.TYPE_INTEGER, description="id")}))
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)])
     @validate_token
     def get(self, request):
         try:
@@ -73,7 +72,7 @@ class Notes(APIView):
         except Exception as exception:
             return Response({'Exception': exception})
 
-    @swagger_auto_schema(manual_parameters=[openapi.Parameter('TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
+    @swagger_auto_schema(manual_parameters=[openapi.Parameter('HTTP_TOKEN', openapi.IN_HEADER, type=openapi.TYPE_STRING)],
                          request_body=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
                              'title': openapi.Schema(type=openapi.TYPE_STRING, description="title"),
                              'description': openapi.Schema(type=openapi.TYPE_STRING, description="description"),

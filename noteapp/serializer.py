@@ -5,7 +5,7 @@ from rest_framework.serializers import ModelSerializer
 class NoteSerializer(ModelSerializer):
     class Meta:
         model = Note
-        fields = ['id', 'title', 'description', 'user', 'collaborator']
+        fields = ['id', 'title', 'description', 'user']
 
 
 class LabelSerializer(ModelSerializer):

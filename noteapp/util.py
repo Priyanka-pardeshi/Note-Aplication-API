@@ -16,9 +16,9 @@ def validate_token(func):
         # update then serialize
         if isinstance(request.data, QueryDict):
             request.data._mutable = True
-            request.data.update({'user':user_id})
+            request.data.update({'user': user_id})
         request.data.update({'user': user_id})
-
+        print(request.data," request data")
         return func(self, request)
     return inner
 
