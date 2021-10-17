@@ -1,3 +1,5 @@
+import json
+
 from django.core.exceptions import FieldDoesNotExist
 from registerapp.models import UserRegistration
 from rest_framework.exceptions import ParseError, NotFound
@@ -13,6 +15,8 @@ from noteapp.util import validate_token
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from noteapp.elasticsearch import Elastic_search
+from django.conf import settings
 
 logging.basicConfig(filename='UserRegistration.log', filemode='w')
 
@@ -34,13 +38,18 @@ class Notes(APIView):
     @validate_token
     def post(self, request):
         try:
-            serializer = NoteSerializer(data=request.data)
-            if serializer.is_valid():
-                logging.info('Data is valid data')
-                note = serializer.save()
-                print("Note id::", note.id)
-                logging.info('Data is saved and status has been generated')
-                return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
+            #serializer = NoteSerializer(data=request.data)
+            #if serializer.is_valid():
+            #    logging.info('Data is valid data')
+            #    note = serializer.save()
+            #    print("Note id::", note.id)
+            #   logging.info('Data is saved and status has been generated')
+            #     return Response({'data': serializer.data}, status=status.HTTP_201_CREATED)
+            note_data = request.data
+            print(note_data)
+            es = Elastic_search()
+            es.post_data(note_data)
+            return Response({'message': 'data saved'})
 
         except FieldDoesNotExist:
             logging.exception('Field does not exists')
@@ -59,14 +68,20 @@ class Notes(APIView):
     @validate_token
     def get(self, request):
         try:
-            # get collaborator and label
             user_id = request.data['user']
             print(user_id)
-            note = Note.objects.filter(user_id=user_id)
-            serializer = NoteSerializer(note, many=True)
-            logging.info('Getting specific Note from Register User')
+        #    note = Note.objects.filter(user_id=user_id)
+        #    serializer = NoteSerializer(note, many=True)
+        #    logging.info('Getting specific Note from Register User')
             #  add status
-            return Response({'Note List': serializer.data}, status=status.HTTP_200_OK)
+        #    return Response({'Note List': serializer.data}, status=status.HTTP_200_OK)
+        #    note_data = request.data
+            print(settings.ES_HOST, settings.ES_PORT)
+            es = Elastic_search()
+            data = es.get_data(user_id)
+            print(data)
+            return Response({'message': data})
+
         except NotFound as exception:
             logging.exception('Record Not found')
             return Response({'Resource Does not exists': exception})
@@ -103,17 +118,21 @@ class Notes(APIView):
     @validate_token
     def delete(self, request):
         try:
-            user_id = request.data['user']
-            note = Note.objects.all().filter(user_id=user_id)
-            serializer = NoteSerializer(note, many=True)
-            identity = request.data.get('id')
-            print(identity)
-            obj = Note.objects.filter(id=identity)
-            print("object:", obj)
-            print(serializer)
-            print("this is Note:", note)
-            obj.delete()
-            logging.info('Record has been successfully deleted')
+            # user_id = request.data['user']
+            # note = Note.objects.all().filter(user_id=user_id)
+            # serializer = NoteSerializer(note, many=True)
+            # identity = request.data.get('id')
+            # print(identity)
+            # obj = Note.objects.filter(id=identity)
+            # print("object:", obj)
+            # print(serializer)
+            # print("this is Note:", note)
+            # obj.delete()
+            # logging.info('Record has been successfully deleted')
+            note_name = request.data.get('title')
+            print(note_name)
+            es = Elastic_search()
+            es.delete_data(note_name)
             return Response({'Message': 'Deleted record'}, status=status.HTTP_200_OK)
         except Exception as exception:
             logging.exception('Exception occurs as:', exception)
