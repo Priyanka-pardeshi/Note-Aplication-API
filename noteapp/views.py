@@ -49,6 +49,7 @@ class Notes(APIView):
             print(note_data)
             es = Elastic_search()
             es.post_data(note_data)
+
             return Response({'message': 'data saved'})
 
         except FieldDoesNotExist:
@@ -78,8 +79,8 @@ class Notes(APIView):
         #    note_data = request.data
             print(settings.ES_HOST, settings.ES_PORT)
             es = Elastic_search()
-            data = es.get_data(user_id)
-            print(data)
+            data = es.get_data()
+            print("get data::",data)
             return Response({'message': data})
 
         except NotFound as exception:
@@ -129,11 +130,11 @@ class Notes(APIView):
             # print("this is Note:", note)
             # obj.delete()
             # logging.info('Record has been successfully deleted')
-            note_name = request.data.get('title')
-            print(note_name)
+            note_id = request.data.get('id')
+            print(id)
             es = Elastic_search()
-            es.delete_data(note_name)
-            return Response({'Message': 'Deleted record'}, status=status.HTTP_200_OK)
+            message=es.delete_data(note_id)
+            return Response({'Message': message}, status=status.HTTP_200_OK)
         except Exception as exception:
             logging.exception('Exception occurs as:', exception)
             return Response({'Exception': exception})
