@@ -22,10 +22,10 @@ class Elastic_search:
         print("list of id:",id_list)
         max_id=max(id_list)
         print("max id",max_id)
-        current_id =max_id + 1
-        print("current",current_id)
-    
-        es_data = self.es.index(index="note", id=current_id, document=note_data)
+        current_id =int(max_id) + 1
+        print("current",current_id,max_id)
+        #es_data=self.es.index(index="note",id=current_id,body=note_data)
+        es_data = self.es.index(index="note", id=str(current_id), document=note_data)
         print(es_data)
         return es_data['result']
 
