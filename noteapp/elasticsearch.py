@@ -1,6 +1,6 @@
-from elasticsearch import Elasticsearch
+#from elasticsearch import Elasticsearch
 from django.conf import settings
-from elasticsearch.helpers import scan
+#from elasticsearch.helpers import scan
 
 '''
     Performing get, post, delete operation on data Using Elastic search.
